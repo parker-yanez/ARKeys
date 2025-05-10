@@ -46,19 +46,23 @@ t0 = time.time()
 
 try:
     while True:
-        # Create dynamic overlay image
+        # Create dynamic overlay layer
         dyn = Image.new('1', (w, h), 255)
         draw = ImageDraw.Draw(dyn)
 
-        # ----- HEADER: date (left) and time (right) -----
+        # ----- HEADER: centered date, time on right -----
         now = datetime.now()
         date_str = now.strftime('%B ') + ordinal(now.day)
         time_str = now.strftime('%H:%M')
-        # draw date
-        draw.text((5, 2), date_str, font=font_header, fill=0)
-        # draw time
-        bbox_t = draw.textbbox((0, 0), time_str, font=font_header)
-        draw.text((w - bbox_t[2] - 5, 2), time_str, font=font_header, fill=0)
+
+        # Center date in header
+        bbox_date = draw.textbbox((0, 0), date_str, font=font_header)
+        x_date = (w - (bbox_date[2] - bbox_date[0])) // 2
+        draw.text((x_date, 2), date_str, font=font_header, fill=0)
+
+        # Draw time on the top-right
+        bbox_time = draw.textbbox((0, 0), time_str, font=font_header)
+        draw.text((w - bbox_time[2] - 5, 2), time_str, font=font_header, fill=0)
 
         # ----- FOOTER LEFT: Session Timer -----
         elapsed = int(time.time() - t0)
@@ -71,11 +75,12 @@ try:
         # ----- FOOTER RIGHT: Avg WPM Placeholder -----
         avg_wpm = 75  # TODO: replace with real API value
         avg_str = f"avg {avg_wpm}"
-        bbox_a = draw.textbbox((0, 0), avg_str, font=font_avg)
-        draw.text((w - bbox_a[2] - 5, h - bbox_a[3] - 2), avg_str, font=font_avg, fill=0)
+        bbox_avg = draw.textbbox((0, 0), avg_str, font=font_avg)
+        draw.text((w - bbox_avg[2] - 5, h - bbox_avg[3] - 2), avg_str, font=font_avg, fill=0)
 
         # Partial update only dynamic overlay
         epd.displayPartial(epd.getbuffer(dyn))
+
         time.sleep(1)
 
 except KeyboardInterrupt:
