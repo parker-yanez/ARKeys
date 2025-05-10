@@ -1,8 +1,10 @@
-#!/usr/bin/env python3
+
+import time
 import time
 from PIL import Image, ImageDraw
 from eink_driver import EInkDisplay
-from segments import SevenSegmentDisplay
+from segments import SevenSegmentDisplay   # <-- this now works
+
 
 def main():
     # 1) Initialize display
