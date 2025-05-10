@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Home screen renderer with partial updates: centered date/time header, session timer + avg WPM footer with Tahoma font
+# Home screen renderer with partial updates: static background + dynamic overlay using Tahoma font
 
 import time
 import os
@@ -25,61 +25,61 @@ w, h = epd.height, epd.width  # 122×250
 
 # Load static background
 base = Image.open(UI_BG).convert('1')
-# Full refresh for the static UI
+# Display static UI once
 epd.display(epd.getbuffer(base))
-# Set as base for partial updates
+# Prepare for partial updates
 epd.displayPartBaseImage(epd.getbuffer(base))
 
-# Load fonts (Tahoma preferred)
+# Load fonts (Tahoma preferred, fallback to DejaVu)
 if os.path.exists(TAHOMA):
     font_header = ImageFont.truetype(TAHOMA, 16)
     font_footer = ImageFont.truetype(TAHOMA, 16)
     font_avg    = ImageFont.truetype(TAHOMA, 20)
 else:
-    # Fallback to DejaVu
     FONT_DIR = '/usr/share/fonts/truetype/dejavu'
     font_header = ImageFont.truetype(f'{FONT_DIR}/DejaVuSans.ttf', 16)
     font_footer = ImageFont.truetype(f'{FONT_DIR}/DejaVuSans.ttf', 16)
     font_avg    = ImageFont.truetype(f'{FONT_DIR}/DejaVuSansMono-Bold.ttf', 20)
 
-# Start timestamp for session timer
+# Track session start
 t0 = time.time()
 
 try:
     while True:
-        # Dynamic overlay layer (blank)
+        # Create dynamic overlay image
         dyn = Image.new('1', (w, h), 255)
         draw = ImageDraw.Draw(dyn)
 
-        # ----- HEADER -----
+        # ----- HEADER: date (left) and time (right) -----
         now = datetime.now()
         date_str = now.strftime('%B ') + ordinal(now.day)
         time_str = now.strftime('%H:%M')
-        header = f"{date_str} {time_str}"
-        bbox = draw.textbbox((0, 0), header, font=font_header)
-        x = (w - (bbox[2] - bbox[0])) // 2
-        draw.text((x, 2), header, font=font_header, fill=0)
+        # draw date
+        draw.text((5, 2), date_str, font=font_header, fill=0)
+        # draw time
+        bbox_t = draw.textbbox((0, 0), time_str, font=font_header)
+        draw.text((w - bbox_t[2] - 5, 2), time_str, font=font_header, fill=0)
 
         # ----- FOOTER LEFT: Session Timer -----
         elapsed = int(time.time() - t0)
         hrs, rem = divmod(elapsed, 3600)
         mins, secs = divmod(rem, 60)
         session_str = f"{hrs:02d}:{mins:02d}:{secs:02d}"
-        bbox2 = draw.textbbox((0, 0), session_str, font=font_footer)
-        draw.text((5, h - bbox2[3] - 2), session_str, font=font_footer, fill=0)
+        bbox_s = draw.textbbox((0, 0), session_str, font=font_footer)
+        draw.text((5, h - bbox_s[3] - 2), session_str, font=font_footer, fill=0)
 
-        # ----- FOOTER RIGHT: Avg WPM -----
-        avg_wpm = 75  # Placeholder; replace with real API value
+        # ----- FOOTER RIGHT: Avg WPM Placeholder -----
+        avg_wpm = 75  # TODO: replace with real API value
         avg_str = f"avg {avg_wpm}"
-        bbox3 = draw.textbbox((0, 0), avg_str, font=font_avg)
-        draw.text((w - bbox3[2] - 5, h - bbox3[3] - 2), avg_str, font=font_avg, fill=0)
+        bbox_a = draw.textbbox((0, 0), avg_str, font=font_avg)
+        draw.text((w - bbox_a[2] - 5, h - bbox_a[3] - 2), avg_str, font=font_avg, fill=0)
 
-        # Partial refresh (only the dynamic overlay)
+        # Partial update only dynamic overlay
         epd.displayPartial(epd.getbuffer(dyn))
         time.sleep(1)
 
 except KeyboardInterrupt:
-    # Clean up on exit
+    # Cleanup on exit
     epd.init()
     epd.Clear(0xFF)
     epd.sleep()
