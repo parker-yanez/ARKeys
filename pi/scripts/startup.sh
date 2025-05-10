@@ -1,14 +1,9 @@
 #!/bin/bash
-# ~/Arkkeys/pi/scripts/startup.sh
+# Activate the right venv
+source /home/arktype-pi/ARKeys/.venv/bin/activate
 
-# 1) Activate the virtualenv
-source /home/arktype-pi/Arkkeys/.venv/bin/activate
+# Go to the display folder where segment_test.py lives
+cd /home/arktype-pi/ARKeys/pi/display
 
-# 2) Change to project directory (optional, but good practice)
-cd /home/arktype-pi/Arkkeys
-
-# 3) Run your desired Python command. For demo:
-python pi/display/segment_test.py
-
-# Or to start your Bottle API:
-# python pi/api/app.py
+# Run the demo
+python3 segment_test.py
