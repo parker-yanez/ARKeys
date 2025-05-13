@@ -10,7 +10,7 @@ def ordinal(n):
     return f"{n}{'th' if 11 <= n % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
 
 # Configuration
-API_URL = "http://localhost:8000"  # Your Bottle API
+API_URL = "http://192.168.1.225:8000"  # Your Bottle API
 UPDATE_INTERVAL = 5  # Update every 5 seconds
 
 # Paths
