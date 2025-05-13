@@ -1,0 +1,26 @@
+2025-05-13 15:32:24,838 - INFO - Typing tracker starting up
+2025-05-13 15:32:24,838 - INFO - Starting keyboard listener
+2025-05-13 15:32:24,839 - INFO - Starting WebSocket metrics server on port 8765...
+2025-05-13 15:32:24,875 - INFO - server listening on 0.0.0.0:8765
+2025-05-13 15:32:24,875 - INFO - WebSocket server started on port 8765. Press Ctrl+C to stop.
+2025-05-13 15:32:24,876 - INFO - server closing
+2025-05-13 15:32:24,876 - INFO - server closed
+2025-05-13 15:32:24,876 - ERROR - Unexpected error: Task <Task pending name='Task-1' coro=<ws_main() running at /Users/parkeryanez/Desktop/ARKeys/host/api/host_ws.py:310> cb=[_run_until_complete_cb() at /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/asyncio/base_events.py:184]> got Future <Future pending> attached to a different loop
+2025-05-13 15:32:24,876 - INFO - Typing tracker shutting down
+2025-05-13 15:34:31,298 - INFO - Typing tracker starting up
+2025-05-13 15:34:31,298 - INFO - Starting keyboard listener
+2025-05-13 15:34:31,299 - INFO - Starting WebSocket metrics server on port 8765...
+2025-05-13 15:34:31,327 - INFO - server listening on 0.0.0.0:8765
+2025-05-13 15:34:31,327 - INFO - WebSocket server started on port 8765. Press Ctrl+C to stop.
+2025-05-13 15:34:33,809 - INFO - connection open
+2025-05-13 15:34:33,810 - ERROR - connection handler failed
+Traceback (most recent call last):
+  File "/Users/parkeryanez/Desktop/ARKeys/.venv/lib/python3.9/site-packages/websockets/asyncio/server.py", line 376, in conn_handler
+    await self.handler(connection)
+TypeError: handle_connection() missing 1 required positional argument: 'path'
+2025-05-13 15:36:17,914 - INFO - Received signal 2, shutting down...
+2025-05-13 15:36:18,482 - INFO - Shutting down WebSocket server...
+2025-05-13 15:36:18,484 - INFO - server closing
+2025-05-13 15:36:18,487 - INFO - server closed
+2025-05-13 15:36:18,487 - INFO - Server shutdown complete
+2025-05-13 15:36:18,489 - INFO - Typing tracker shutting down
