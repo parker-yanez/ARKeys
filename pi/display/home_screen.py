@@ -9,7 +9,7 @@ from waveshare_epd import epd2in13_V4
 WS_URL             = "ws://192.168.1.225:8765"
 IDLE_UI_THRESHOLD  = 60.0    # seconds of “no new word” → go back to Idle
 FONT_NAME          = "Tahoma"
-FONT_SIZE_TIME     = 48
+FONT_SIZE_TIME     = 12
 FONT_SIZE_WPM      = 48
 # positions
 CLOCK_MARGIN_RIGHT = 15
