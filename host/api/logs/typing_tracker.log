@@ -16,3 +16,15 @@ TypeError: handle_client() missing 1 required positional argument: 'path'
 2025-05-13 15:38:45,196 - INFO - server closed
 2025-05-13 15:38:45,196 - INFO - Server stopped
 2025-05-13 15:38:45,197 - INFO - Application shutting down
+2025-05-13 22:59:42,675 - INFO - Typing metrics server starting
+2025-05-13 22:59:42,676 - INFO - Starting keyboard listener
+2025-05-13 22:59:42,677 - INFO - Starting WebSocket server on port 8765
+2025-05-13 22:59:42,704 - INFO - server listening on 0.0.0.0:8765
+2025-05-13 22:59:42,704 - INFO - Server running at ws://0.0.0.0:8765
+2025-05-13 22:59:46,479 - INFO - connection open
+2025-05-13 22:59:46,480 - INFO - Client 4579281600 connected
+2025-05-13 22:59:52,008 - INFO - Mode transition: idle -> typing (word completion)
+2025-05-13 23:01:11,656 - INFO - Mode transition: typing -> idle
+2025-05-13 23:02:10,582 - INFO - Mode transition: idle -> typing
+2025-05-13 23:02:49,861 - INFO - Mode transition: typing -> idle
+2025-05-13 23:03:50,045 - INFO - Mode transition: idle -> typing
