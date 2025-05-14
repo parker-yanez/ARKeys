@@ -283,6 +283,9 @@ def start_websocket_client():
 
 def render_idle_mode(draw, width, height, fonts):
     """Render the idle mode display with large centered clock"""
+    # Ensure we're using the exact screen dimensions
+    SCREEN_HEIGHT = 122  # Fixed height for explicit centering
+    
     time_str = datetime.now().strftime("%H:%M")
     
     # Get the exact bounding box for the text
@@ -292,13 +295,21 @@ def render_idle_mode(draw, width, height, fonts):
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
     
-    # Calculate position for perfect centering both horizontally and vertically
+    # Calculate position for perfect centering
     x = (width - text_width) // 2
-    y = (height - text_height) // 2
+    
+    # Explicitly center in the 122 pixel height
+    y = (SCREEN_HEIGHT - text_height) // 2
+    
+    # Add small adjustment if needed for visual centering
+    # Sometimes fonts need a small adjustment to appear visually centered
+    y_adjustment = -2  # Small upward shift to compensate for visual weight
     
     # Draw the clock exactly centered
-    draw.text((x, y), time_str, font=fonts['clock_big'], fill=0)
-
+    draw.text((x, y + y_adjustment), time_str, font=fonts['clock_big'], fill=0)
+    
+    # Uncomment for debugging centering
+    # draw.line([(0, SCREEN_HEIGHT//2), (width, SCREEN_HEIGHT//2)], fill=0)  # horizontal center line
 def render_typing_mode(draw, width, height, fonts, metrics):
     """Render the typing mode layout with improved positioning"""
     # 1) Small clock in top-center 
