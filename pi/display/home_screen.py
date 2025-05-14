@@ -11,6 +11,7 @@ Features:
 - Ghost-busting full refresh when needed
 - Efficient partial updates during continuous use
 - Connection monitoring and recovery
+- Stable WPM display when transitioning to idle
 """
 
 import time
@@ -78,19 +79,43 @@ class DisplayState:
             "refresh": False
         }
         
+        # Last known good values (to prevent decay)
+        self.last_active_wpm = 0.0
+        
         # Connection state
         self.is_connected = False
         self.last_msg_ts = 0.0
         self.running = True
     
     def update_from_message(self, data):
-        """Update state based on incoming WebSocket message"""
+        """Update state based on incoming WebSocket message with stable WPM handling"""
         # Track previous mode for transition detection
         self.last_mode = self.mode
         
-        # Update with new data
-        self.metrics = data
-        self.mode = data.get("mode", "idle")
+        # Get the new mode from server
+        new_mode = data.get("mode", "idle")
+        
+        # Update metrics with WPM stability
+        if new_mode == "typing":
+            # In typing mode, update WPM if it's a meaningful value
+            current_wpm = data.get("wpm", 0.0)
+            if current_wpm > 0:
+                self.metrics["wpm"] = current_wpm
+                # Keep track of last active WPM for idle mode
+                self.last_active_wpm = current_wpm
+        elif new_mode == "idle" and self.mode == "typing":
+            # Just switched to idle mode - display last active WPM
+            self.metrics["wpm"] = self.last_active_wpm
+        
+        # Always update the rest of the metrics
+        self.metrics["accuracy"] = data.get("accuracy", self.metrics.get("accuracy", 100.0))
+        self.metrics["total_words"] = data.get("total_words", self.metrics.get("total_words", 0))
+        self.metrics["correct_words"] = data.get("correct_words", self.metrics.get("correct_words", 0))
+        self.metrics["peak_wpm"] = data.get("peak_wpm", self.metrics.get("peak_wpm", 0.0))
+        self.metrics["active_time"] = data.get("active_time", self.metrics.get("active_time", 0.0))
+        
+        # Update mode and timestamps
+        self.mode = new_mode
         self.last_msg_ts = time.time()
         
         # Check for mode transition
@@ -273,44 +298,53 @@ def render_idle_mode(draw, width, height, fonts):
     draw.text((x, y), time_str, font=fonts['clock_big'], fill=0)
 
 def render_typing_mode(draw, width, height, fonts, metrics):
-    """Render the typing mode layout"""
-    # 1) Small clock in top-right corner
+    """Render the typing mode layout with improved positioning"""
+    # 1) Small clock in top-center 
     time_str = datetime.now().strftime("%H:%M")
     clock_bbox = draw.textbbox((0, 0), time_str, font=fonts['clock_sm'])
     clock_width = clock_bbox[2] - clock_bbox[0]
+    
+    # Position: top-center
+    clock_x = (width - clock_width) // 2
     draw.text(
-        (width - clock_width - 15, 5),  # Position: 15px from right, 5px from top
+        (clock_x, 8),  # Centered horizontally, 8px from top
         time_str,
         font=fonts['clock_sm'],
         fill=0
     )
     
-    # 2) WPM display (large, centered in upper half)
+    # 2) WPM display (large, centered more toward middle)
     wpm_str = f"{int(metrics['wpm'])} WPM"
     wpm_bbox = draw.textbbox((0, 0), wpm_str, font=fonts['wpm'])
     wpm_width = wpm_bbox[2] - wpm_bbox[0]
     wpm_height = wpm_bbox[3] - wpm_bbox[1]
     
-    # Center horizontally, position vertically to leave room for accuracy
+    # Center horizontally, place vertically at 40% of screen height
     wpm_x = (width - wpm_width) // 2
-    wpm_y = ((height // 2) - wpm_height) // 2  # Upper half center
+    wpm_y = int(height * 0.4) - (wpm_height // 2)  # 40% down the screen
     
     draw.text((wpm_x, wpm_y), wpm_str, font=fonts['wpm'], fill=0)
     
-    # 3) Accuracy display (below WPM)
+    # 3) Accuracy display (below WPM, closer to it)
     acc_str = f"{int(metrics['accuracy'])}% ACC"
     acc_bbox = draw.textbbox((0, 0), acc_str, font=fonts['accuracy'])
     acc_width = acc_bbox[2] - acc_bbox[0]
     
-    # Center horizontally, position 20px below WPM
+    # Center horizontally, position 15px below WPM (closer than before)
     acc_x = (width - acc_width) // 2
-    acc_y = wpm_y + wpm_height + 20
+    acc_y = wpm_y + wpm_height + 15  # Reduced from 20px to 15px
     
     draw.text((acc_x, acc_y), acc_str, font=fonts['accuracy'], fill=0)
     
-    # 4) Peak WPM (bottom-left corner) - Changed from "Hi" to "Peak WPM"
-    peak_str = f"Peak WPM: {int(metrics['peak_wpm'])}"
+    # 4) Peak WPM (bottom-left corner, more readable)
+    peak_str = f"Peak: {int(metrics['peak_wpm'])}"  # Shorter text
     draw.text((5, height - 15), peak_str, font=fonts['peak'], fill=0)
+    
+    # 5) Word count (bottom right before connection indicator)
+    word_count_str = f"{metrics['total_words']}w"
+    word_count_bbox = draw.textbbox((0, 0), word_count_str, font=fonts['peak'])
+    word_count_width = word_count_bbox[2] - word_count_bbox[0]
+    draw.text((width - word_count_width - 20, height - 15), word_count_str, font=fonts['peak'], fill=0)
 
 def render_connection_indicator(draw, width, height, is_connected):
     """Render a small connection status indicator (bottom right)"""

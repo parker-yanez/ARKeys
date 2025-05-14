@@ -35,3 +35,33 @@ TypeError: handle_client() missing 1 required positional argument: 'path'
 2025-05-13 23:07:10,830 - INFO - Mode transition: typing -> idle
 2025-05-13 23:08:29,986 - INFO - Mode transition: idle -> typing
 2025-05-13 23:09:21,669 - INFO - Mode transition: typing -> idle
+2025-05-13 23:09:33,217 - INFO - Mode transition: idle -> typing
+2025-05-13 23:09:39,116 - INFO - Client 4579282800 disconnected
+2025-05-13 23:09:39,117 - INFO - Client 4579282800 removed. 1 clients remaining
+2025-05-13 23:10:01,452 - INFO - connection open
+2025-05-13 23:10:01,452 - INFO - Client 4579427328 connected
+2025-05-13 23:10:21,499 - INFO - Mode transition: typing -> idle
+2025-05-13 23:10:34,868 - INFO - Mode transition: idle -> typing
+2025-05-13 23:12:11,705 - INFO - Mode transition: typing -> idle
+2025-05-13 23:12:24,211 - INFO - Mode transition: idle -> typing
+2025-05-13 23:16:00,238 - INFO - Mode transition: typing -> idle
+2025-05-13 23:16:13,521 - INFO - Mode transition: idle -> typing
+2025-05-13 23:17:16,378 - INFO - Mode transition: typing -> idle
+2025-05-13 23:18:29,643 - INFO - Mode transition: idle -> typing
+2025-05-13 23:20:08,752 - INFO - Mode transition: typing -> idle
+2025-05-13 23:22:08,035 - INFO - Mode transition: idle -> typing
+2025-05-13 23:23:15,246 - INFO - Mode transition: typing -> idle
+2025-05-13 23:23:56,827 - INFO - Mode transition: idle -> typing
+2025-05-13 23:24:24,550 - INFO - server closing
+2025-05-13 23:24:34,562 - INFO - Client 4579281600 disconnected
+2025-05-13 23:24:34,563 - INFO - Client 4579281600 removed. 1 clients remaining
+2025-05-13 23:24:34,563 - INFO - Client 4579427328 disconnected
+2025-05-13 23:24:34,563 - INFO - Client 4579427328 removed. 0 clients remaining
+2025-05-13 23:24:34,563 - INFO - server closed
+2025-05-13 23:24:34,564 - INFO - WebSocket server stopped
+2025-05-13 23:24:34,568 - INFO - Application shutting down
+2025-05-13 23:24:43,167 - INFO - Typing metrics server starting
+2025-05-13 23:24:43,168 - INFO - Starting keyboard listener
+2025-05-13 23:24:43,169 - INFO - Starting WebSocket server on port 8765
+2025-05-13 23:24:43,194 - INFO - server listening on 0.0.0.0:8765
+2025-05-13 23:24:43,194 - INFO - Server running at ws://0.0.0.0:8765

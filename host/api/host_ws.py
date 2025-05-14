@@ -3,6 +3,12 @@
 host_ws.py — Host-side keystroke listener + WebSocket server
 Streams real-time typing metrics with smart mode switching and burst metrics
 to any connected WebSocket client at ws://<host_ip>:8765
+
+Features:
+- Smart mode switching between idle and typing
+- Sliding window WPM calculation that prevents decay when inactive
+- Peak WPM tracking for each typing burst
+- Continuous streaming of metrics to connected clients
 """
 
 import asyncio
@@ -25,6 +31,7 @@ IDLE_THRESHOLD = 30.0   # Seconds without typing before entering idle mode
 UPDATE_INTERVAL = 1.0   # Seconds between updates to clients
 SLIDING_WINDOW = 60.0   # Seconds to look back for WPM calculation
 MAX_WORD_EVENTS = 500   # Maximum number of timestamps to store
+INACTIVE_WPM_FREEZE = 5.0  # Seconds after last word before freezing WPM calculation
 
 # ─── LOGGING SETUP ──────────────────────────────────────────────────────────────
 
@@ -53,6 +60,8 @@ idle_time = 0.0          # Cumulative idle time to subtract
 # Mode state
 current_mode = "idle"    # Current typing state: "idle" or "typing"
 peak_wpm = 0.0           # Highest WPM in current burst
+last_wpm = 0.0           # Last calculated WPM (to prevent decay)
+last_word_time = 0.0     # Time of most recent word completion
 refresh_flag = False     # Indicates mode switch (for full refresh)
 running = True           # Global running state
 
@@ -69,7 +78,7 @@ spell = SpellChecker()
 def on_press(key):
     """Pynput callback for each keypress."""
     global total_words, correct_words, word_buffer, session_start, last_ts, idle_time
-    global current_mode, peak_wpm, refresh_flag
+    global current_mode, peak_wpm, refresh_flag, last_word_time
 
     now = time.time()
     
@@ -115,6 +124,7 @@ def on_press(key):
                     
                     # Record word completion timestamp
                     word_events.append(now)
+                    last_word_time = now
                     
                     # Ensure we're in typing mode
                     if current_mode == "idle":
@@ -146,7 +156,7 @@ def keyboard_listener():
 # ─── METRICS CALCULATION ─────────────────────────────────────────────────────────
 
 def calculate_metrics():
-    """Calculate current typing metrics"""
+    """Calculate current typing metrics with stable WPM during inactivity"""
     with metrics_lock:
         now = time.time()
         
@@ -157,21 +167,35 @@ def calculate_metrics():
         
         # Calculate WPM using sliding window of recent word events
         wpm = 0.0
+        global last_wpm
+        
         recent_words = [ts for ts in word_events if now - ts <= SLIDING_WINDOW]
         
         if recent_words:
-            # If we have words in the window, calculate WPM
+            # Check if we've had any activity in the last few seconds
+            most_recent_word = max(recent_words)
+            time_since_last_word = now - most_recent_word
+            
+            # If we have enough words in the window, calculate WPM
             word_count = len(recent_words)
             if word_count >= 2:  # Need at least 2 words for meaningful rate
                 # Time span from first to last word in window
-                span = now - recent_words[0]
-                if span > 0:
-                    # Words per minute calculation
+                span = most_recent_word - recent_words[0]
+                
+                # If idle for more than INACTIVE_WPM_FREEZE seconds, freeze the WPM calculation
+                # This prevents WPM decay when you stop typing
+                if time_since_last_word > INACTIVE_WPM_FREEZE:
+                    # Keep using the last active calculation
+                    wpm = last_wpm
+                elif span > 0:
+                    # Normal WPM calculation during active typing
                     wpm = (word_count / span) * 60.0
+                    # Remember this WPM for when we go inactive
+                    last_wpm = wpm
         
         # Update peak WPM if this is higher
         global peak_wpm
-        if wpm > peak_wpm:
+        if wpm > peak_wpm and wpm > 0:
             peak_wpm = wpm
         
         # Calculate accuracy
