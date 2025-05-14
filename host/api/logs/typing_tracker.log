@@ -108,3 +108,9 @@ TypeError: handle_client() missing 1 required positional argument: 'path'
 2025-05-14 14:28:11,481 - INFO - Mode transition: idle -> typing
 2025-05-14 14:28:25,078 - INFO - Client 4445628304 disconnected
 2025-05-14 14:28:25,080 - INFO - Client 4445628304 removed. 1 clients remaining
+2025-05-14 14:28:59,460 - INFO - connection open
+2025-05-14 14:28:59,460 - INFO - Client 4445629408 connected
+2025-05-14 14:29:19,169 - INFO - Mode transition: typing -> idle
+2025-05-14 14:31:43,085 - INFO - Mode transition: idle -> typing
+2025-05-14 14:32:28,519 - INFO - Mode transition: typing -> idle
+2025-05-14 14:32:38,108 - INFO - Mode transition: idle -> typing

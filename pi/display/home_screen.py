@@ -301,15 +301,14 @@ def render_idle_mode(draw, width, height, fonts):
     # Explicitly center in the 122 pixel height
     y = (SCREEN_HEIGHT - text_height) // 2
     
-    # Add small adjustment if needed for visual centering
-    # Sometimes fonts need a small adjustment to appear visually centered
-    y_adjustment = -2  # Small upward shift to compensate for visual weight
+    # Lift the clock up by 20 pixels
+    y_adjustment = -22  # -2 from before, plus -20 to lift it up
     
-    # Draw the clock exactly centered
+    # Draw the clock exactly centered horizontally, but 20px higher
     draw.text((x, y + y_adjustment), time_str, font=fonts['clock_big'], fill=0)
+
+
     
-    # Uncomment for debugging centering
-    # draw.line([(0, SCREEN_HEIGHT//2), (width, SCREEN_HEIGHT//2)], fill=0)  # horizontal center line
 def render_typing_mode(draw, width, height, fonts, metrics):
     """Render the typing mode layout with improved positioning"""
     # 1) Small clock in top-center 
