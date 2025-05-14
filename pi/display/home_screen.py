@@ -1,119 +1,137 @@
 #!/usr/bin/env python3
-import time, threading, json, os
+import time
+import threading
+import json
+import os
 from datetime import datetime
-from websocket import create_connection
 from PIL import Image, ImageDraw, ImageFont
 from waveshare_epd import epd2in13_V4
+from websocket import WebSocketApp
 
-# ——— CONFIG —————————————————————————————————————————————————————————————————
-WS_URL              = "ws://192.168.1.225:8765"
-IDLE_UI_THRESHOLD   = 60.0    # seconds after last word → back to Idle
-FONT_NAME           = "Tahoma"
-FONT_SIZE_IDLE      = 48      # big clock in Idle
-FONT_SIZE_TYPE      = 12      # small clock in Typing
-FONT_SIZE_WPM       = 36      # wpm in Typing
-FONT_SIZE_ACC       = 24      # accuracy in Typing
-CLOCK_MARGIN_RIGHT  = 15
-CLOCK_MARGIN_TOP    = 5
-SPACING             = 5       # vertical gap between WPM and ACC
+# ─── CONFIG ───────────────────────────────────────────────────────────────────
 
-ROOT      = os.path.expanduser('~/ARKeys')
-ASSETS    = os.path.join(ROOT, 'assets')
-STATICUI  = os.path.join(ASSETS, 'static_ui.png')
-TAHOMA    = os.path.join(ASSETS, 'Tahoma.ttf')
+# how long to wait after last word before going back to Idle mode
+IDLE_THRESHOLD = 10.0
 
-# ——— GLOBAL STATE ———————————————————————————————————————————————————————————————
-metrics       = {"wpm":0.0, "accuracy":100.0, "total_words":0}
-last_total    = 0
-freeze_wpm    = 0.0
-freeze_acc    = 100.0
-last_word_ts  = None
+# your host WebSocket URL
+WS_URL = "ws://192.168.1.225:8765"
 
-# ——— E-INK SETUP ——————————————————————————————————————————————————————————————
+# display dimensions (will be flipped by the driver)
 epd = epd2in13_V4.EPD()
-epd.init(); epd.Clear(0xFF)
-w, h = epd.height, epd.width
+epd.init()
+epd.Clear(0xFF)
+W, H = epd.height, epd.width  # note: height and width are swapped in the driver
 
-# static background
-base = Image.open(STATICUI).convert('1')
-epd.display(epd.getbuffer(base))
-epd.displayPartBaseImage(epd.getbuffer(base))
+# font sizes
+FONT_BIG   = 48  # idle‐mode clock + typing WPM
+FONT_SMALL = 12  # typing‐mode clock + ACC
 
-# load fonts helper
+# pixel spacing between WPM and ACC
+SPACING = 5
+
+# optional Tahoma fallback
+ASSETS     = os.path.expanduser('~/ARKeys/assets')
+TAHOMA_TTF = os.path.join(ASSETS, 'Tahoma.ttf')
+
+# ─── GLOBAL METRICS STATE ─────────────────────────────────────────────────────
+
+metrics_data     = {"wpm": 0.0, "accuracy": 100.0, "total_words": 0}
+freeze_wpm       = 0.0
+freeze_acc       = 100.0
+last_total_words = 0
+last_word_ts     = 0.0
+
+# ─── WEBSOCKET CALLBACK ───────────────────────────────────────────────────────
+
+def on_ws_message(ws, message):
+    global metrics_data, freeze_wpm, freeze_acc, last_total_words, last_word_ts
+
+    data = json.loads(message)
+    metrics_data = data
+
+    new_tw = data.get("total_words", 0)
+    # whenever total_words increases, freeze the new WPM & ACC
+    if new_tw > last_total_words:
+        freeze_wpm       = data.get("wpm", 0.0)
+        freeze_acc       = data.get("accuracy", 100.0)
+        last_total_words = new_tw
+        last_word_ts     = time.time()
+
+# start the WebSocket client in a background thread
+def start_ws():
+    ws = WebSocketApp(WS_URL, on_message=on_ws_message)
+    ws.run_forever()
+
+threading.Thread(target=start_ws, daemon=True).start()
+
+# ─── PREPARE FONTS ─────────────────────────────────────────────────────────────
+
 def load_font(size):
-    if os.path.exists(TAHOMA):
-        return ImageFont.truetype(TAHOMA, size)
-    return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size)
+    if os.path.exists(TAHOMA_TTF):
+        return ImageFont.truetype(TAHOMA_TTF, size)
+    # fallback to DejaVu
+    return ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size
+    )
 
-font_time_idle = load_font(FONT_SIZE_IDLE)
-font_time_type = load_font(FONT_SIZE_TYPE)
-font_wpm       = load_font(FONT_SIZE_WPM)
-font_acc       = load_font(FONT_SIZE_ACC)
+font_big   = load_font(FONT_BIG)
+font_small = load_font(FONT_SMALL)
 
-# ——— WEBSOCKET LISTENER ————————————————————————————————————————————————————————
-def ws_listener():
-    global metrics, last_total, freeze_wpm, freeze_acc, last_word_ts
-    while True:
-        try:
-            ws = create_connection(WS_URL)
-            while True:
-                msg = ws.recv()
-                data = json.loads(msg)
-                metrics = data
-                # freeze on new word
-                if data.get("total_words",0) > last_total:
-                    last_total   = data["total_words"]
-                    freeze_wpm   = data["wpm"]
-                    freeze_acc   = data["accuracy"]
-                    last_word_ts = time.time()
-        except Exception:
-            time.sleep(5)
+# ─── MAIN LOOP ────────────────────────────────────────────────────────────────
 
-threading.Thread(target=ws_listener, daemon=True).start()
-
-# ——— MAIN RENDER LOOP —————————————————————————————————————————————————————————
 try:
     while True:
-        now = datetime.now()
-        idle = not (last_word_ts and time.time() - last_word_ts < IDLE_UI_THRESHOLD)
+        now = time.time()
+        idle = (now - last_word_ts) > IDLE_THRESHOLD
 
-        img  = Image.new('1', (w, h), 255)
+        # create an all-white overlay
+        img  = Image.new("1", (W, H), 255)
         draw = ImageDraw.Draw(img)
 
         if idle:
-            # Idle mode: big centered clock
-            time_str = now.strftime("%H:%M")
-            bx, by = draw.textbbox((0,0), time_str, font=font_time_idle)[2:]
-            x = (w - bx)//2
-            y = (h - by)//2
-            draw.text((x,y), time_str, font=font_time_idle, fill=0)
+            # ── Idle Mode: big clock HH:MM centered ────────────────────
+            tstr = datetime.now().strftime("%H:%M")
+            bb   = draw.textbbox((0,0), tstr, font=font_big)
+            tw   = bb[2] - bb[0]
+            th   = bb[3] - bb[1]
+            x    = (W - tw)//2
+            y    = (H - th)//2
+            draw.text((x, y), tstr, font=font_big, fill=0)
 
         else:
-            # Typing mode: small clock top-right
-            time_str = now.strftime("%H:%M")
-            bx, by = draw.textbbox((0,0), time_str, font=font_time_type)[2:]
-            x = w - bx - CLOCK_MARGIN_RIGHT
-            y = CLOCK_MARGIN_TOP
-            draw.text((x,y), time_str, font=font_time_type, fill=0)
+            # ── Typing Mode ────────────────────────────────────────────
+            # 1) small clock in top-right corner (15px from right, 5px down)
+            tstr = datetime.now().strftime("%H:%M")
+            bb   = draw.textbbox((0,0), tstr, font=font_small)
+            tw   = bb[2] - bb[0]
+            draw.text((W - tw - 15, 5), tstr, font=font_small, fill=0)
 
-            # Big WPM centered
+            # 2) frozen WPM in big font, centered vertically above ACC
             wpm_str = f"{int(freeze_wpm)} WPM"
-            bx, by = draw.textbbox((0,0), wpm_str, font=font_wpm)[2:]
-            x = (w - bx)//2
-            # shift up a bit to make room for ACC below
-            y = (h - (by + SPACING + font_acc.getsize("0")[1]))//2
-            draw.text((x,y), wpm_str, font=font_wpm, fill=0)
+            bb      = draw.textbbox((0,0), wpm_str, font=font_big)
+            wpw     = bb[2] - bb[0]
+            wph     = bb[3] - bb[1]
+            # measure ACC height via a dummy "0"
+            bb0     = draw.textbbox((0,0), "0", font=font_small)
+            acc_h   = bb0[3] - bb0[1]
+            y0      = (H - (wph + SPACING + acc_h)) // 2
+            x0      = (W - wpw)//2
+            draw.text((x0, y0), wpm_str, font=font_big, fill=0)
 
-            # Accuracy below WPM
+            # 3) frozen ACC below
             acc_str = f"{int(freeze_acc)}% ACC"
-            bx2, by2 = draw.textbbox((0,0), acc_str, font=font_acc)[2:]
-            x2 = (w - bx2)//2
-            y2 = y + by + SPACING
-            draw.text((x2,y2), acc_str, font=font_acc, fill=0)
+            bb2     = draw.textbbox((0,0), acc_str, font=font_small)
+            aw      = bb2[2] - bb2[0]
+            x2      = (W - aw)//2
+            y2      = y0 + wph + SPACING
+            draw.text((x2, y2), acc_str, font=font_small, fill=0)
 
-        # partial update
+        # Partial‐update only what changed
         epd.displayPartial(epd.getbuffer(img))
-        time.sleep(1)
+        time.sleep(1.0)
 
 except KeyboardInterrupt:
-    epd.init(); epd.Clear(0xFF); epd.sleep()
+    # clean shutdown
+    epd.init()
+    epd.Clear(0xFF)
+    epd.sleep()
