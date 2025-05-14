@@ -31,11 +31,10 @@ IDLE_REFRESH = 600                      # Full refresh every 10 minutes in idle 
 CONNECTION_TIMEOUT = 10.0               # Seconds without message before assuming disconnect
 REFRESH_RATE = 1.0                      # Display update interval in seconds
 
-# Asset Paths
-ASSETS_DIR = os.path.expanduser('~/ARKeys/assets')
-STATIC_UI = os.path.join(ASSETS_DIR, 'static_ui.png')
-TAHOMA_TTF = os.path.join(ASSETS_DIR, 'Tahoma.ttf')
-FALLBACK_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+# Asset Paths - Simplified
+STATIC_UI = "static_ui.png"            # Static background image in working directory
+TAHOMA_TTF = "/usr/share/fonts/truetype/msttcorefonts/Tahoma.ttf"  # System font path
+FALLBACK_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"  # Fallback font
 
 # Font Sizes
 FONT_CLOCK_BIG = 48     # Size for idle clock
@@ -46,12 +45,12 @@ FONT_PEAK = 10          # Size for peak WPM display
 SPACING = 5             # Gap between elements
 
 # Configure logging
-os.makedirs(os.path.join(ASSETS_DIR, 'logs'), exist_ok=True)
+os.makedirs('logs', exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(os.path.join(ASSETS_DIR, 'logs', 'display_client.log')),
+        logging.FileHandler("logs/display_client.log"),
         logging.StreamHandler()
     ]
 )
@@ -138,6 +137,7 @@ def setup_display():
         # Load the static background image
         if os.path.exists(STATIC_UI):
             base = Image.open(STATIC_UI).convert('1')
+            logger.info(f"Loaded static UI from {STATIC_UI}")
         else:
             # Create blank background if image not found
             logger.warning(f"Static UI image not found at {STATIC_UI}, using blank background")
@@ -158,8 +158,22 @@ def load_fonts():
     """Load all required fonts with fallbacks"""
     fonts = {}
     try:
-        # Determine font file to use
-        font_path = TAHOMA_TTF if os.path.exists(TAHOMA_TTF) else FALLBACK_FONT
+        # Try Tahoma first, then fallback
+        font_path = None
+        if os.path.exists(TAHOMA_TTF):
+            font_path = TAHOMA_TTF
+        elif os.path.exists(FALLBACK_FONT):
+            font_path = FALLBACK_FONT
+        else:
+            # If neither font exists, log warning and use default
+            logger.warning("Neither Tahoma nor fallback font found, using default")
+            return {
+                'clock_big': ImageFont.load_default(),
+                'clock_sm': ImageFont.load_default(),
+                'wpm': ImageFont.load_default(),
+                'accuracy': ImageFont.load_default(),
+                'peak': ImageFont.load_default()
+            }
         
         # Load each font size
         fonts['clock_big'] = ImageFont.truetype(font_path, FONT_CLOCK_BIG)
@@ -294,8 +308,8 @@ def render_typing_mode(draw, width, height, fonts, metrics):
     
     draw.text((acc_x, acc_y), acc_str, font=fonts['accuracy'], fill=0)
     
-    # 4) Peak WPM (bottom-left corner)
-    peak_str = f"Hi: {int(metrics['peak_wpm'])}"
+    # 4) Peak WPM (bottom-left corner) - Changed from "Hi" to "Peak WPM"
+    peak_str = f"Peak WPM: {int(metrics['peak_wpm'])}"
     draw.text((5, height - 15), peak_str, font=fonts['peak'], fill=0)
 
 def render_connection_indicator(draw, width, height, is_connected):
