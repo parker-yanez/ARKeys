@@ -302,13 +302,13 @@ def render_idle_mode(draw, width, height, fonts):
     y = (SCREEN_HEIGHT - text_height) // 2
     
     # Lift the clock up by 20 pixels
-    y_adjustment = -22  # -2 from before, plus -20 to lift it up
+    y_adjustment = -12  # -2 from before, plus -20 to lift it up
     
     # Draw the clock exactly centered horizontally, but 20px higher
     draw.text((x, y + y_adjustment), time_str, font=fonts['clock_big'], fill=0)
 
 
-    
+
 def render_typing_mode(draw, width, height, fonts, metrics):
     """Render the typing mode layout with improved positioning"""
     # 1) Small clock in top-center 
